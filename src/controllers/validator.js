@@ -37,7 +37,28 @@ const isValid = (value) => {
     return true
   }
 
- module.exports={isValid,isValidIncludes,validInstallment,validInstallment1,validString,isValidRequestBody} 
+  const validCity =(city)=>{
+    if (!/^[a-zA-Z]+$/.test(city))  return false
+    else return true
+  }
+  const validPincode =(pincode)=>{
+    if (!/^\d{6}$/.test(pincode))  return false
+    else return true
+  }
+const validEmail =(email)=>{
+  if (!/^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})/.test(email))  return false
+  else return true
+}
+const validPhone =(phone)=>{
+  if (!/^(\+91)?0?[6-9]\d{9}$/.test(phone.trim())) return false
+  else return true
+}
+const validName =(name)=>{
+  if (!/^[A-Za-z\s]{1,}[\.]{0,1}[A-Za-z\s]{0,}$/.test(name)) return false
+  else return true
+}
+
+ module.exports={isValid,validPhone,validName ,validEmail,validPincode,isValidIncludes,validInstallment,validInstallment1,validString,isValidRequestBody,validCity} 
 
 
 

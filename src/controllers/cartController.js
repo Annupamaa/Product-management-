@@ -113,6 +113,7 @@ let {quantity}=data
 
         let price = findCart.totalPrice + (quantity * validProduct.price)
         let itemsArr = findCart.items
+        
            
         for (let i=0;i<itemsArr.length;i++) {
 
@@ -128,11 +129,17 @@ let {quantity}=data
             }
          }
          
-        itemsArr.push({ productId: productId, quantity: quantity }) 
+        // itemsArr.push({ productId: productId, quantity: quantity }) 
         
 
-        let itemAddedInCart = { items: itemsArr, totalPrice: price, totalItems: itemsArr.length }
-        let newData = await cartModel.findOneAndUpdate({ _id: findCart._id }, itemAddedInCart, { new: true })
+        // let itemAddedInCart = { items: itemsArr, totalPrice: price, totalItems: itemsArr.length }
+        let newData = await cartModel.findOneAndUpdate({ _id: findCart._id },
+            {
+            $push:{items:{ productId: productId, quantity: quantity }},
+            $set:{totalPrice: price},
+            $inc:{totalItems:1}},
+         
+             { new: true })
 
         return res.status(201).send({ status: true, message: `Success`, data: newData })
      } 

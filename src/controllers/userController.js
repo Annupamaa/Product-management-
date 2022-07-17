@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const { AutoScaling } = require("aws-sdk")
 const { uploadFile } = require("./aws")
-let {isValid,isValidIncludes,validInstallment,validString,isValidRequestBody}=require("./validator")
+let {isValid,isValidIncludes,validInstallment,validString,isValidRequestBody, validCity, validPincode}=require("./validator")
 
 
 
@@ -26,6 +26,7 @@ const createUser = async (req, res) => {
         //==========destructuring=======/
 
         let { fname, lname, email, password, phone, address } = data
+        console.log(address)
 
 
         //===============Validate attributes===============//
@@ -86,7 +87,9 @@ const createUser = async (req, res) => {
         }
 
         //Ganeration of encrypted Password
-        const salt = await bcrypt.genSalt(10)
+        // const salt = await bcrypt.genSalt(10)
+        const salt =10
+        
         data.password = await bcrypt.hash(password, salt)
         console.log(data.password)
 
@@ -110,101 +113,42 @@ const createUser = async (req, res) => {
         }
 
         //for address validation===>
-        if (!address) {
-            return res.status(400).send({ status: false, message: "address is required" })
+      let arr1=["shipping","billing"]
+      let arr2=["street","city","pincode"]
+      for(let i=0;i<arr1.length;i++){
+        if(!address[arr1[i]]){
+            return res.status(400).send({status: false,message:` ${arr1[i]} must present`})
         }
+
+        for(let j=0;j<arr2.length;j++){
+            if(!address[arr1[i]][arr2[j]])
+            return res.status(400).send({status:false,message:`please provide ${arr1[i]} ${arr2[j]}`})
+
+        }
+
+        if(!validCity(address[arr1[i]].city)){
+            return res.status(400).send({status:false,message:` ${[arr1[i]]} city is not valid`})
+        }
+        if(!validPincode(address[arr1[i]].pincode)){
+            return res.status(400).send({status:false,message:` ${[arr1[i]]} pincode is not valid`})
+        }
+      }
         
-        if(data.address[0]!='{' || data.address[data.address.length-1]!='}'){
-            return res.status(400).send({status:false,message:"Address must be in object"})
-        }
-        data.address = JSON.parse(data.address)
-
-
-        // this validation will check the address is in the object format or not
-
-        
-        let { shipping, billing } = data.address        //destructuring
-        if(Object.keys(data.address).length==0){
-            return res.status(400).send({status:false,message:"No keys are present in address"})
-        }
-
-
-        //Shipping field validation==>
-
-        if (!shipping) {
-            return res.status(400).send({ status: false, message: "shipping is required" })
-        }
-
-        if (typeof shipping != "object") {
-            return res.status(400).send({ status: false, message: "shipping should be an object" })
-        }
-
-        if (!isValid(shipping.street)) {
-            return res.status(400).send({ status: false, message: "shipping street is required" })
-        }
-
-        if (!isValid(shipping.city)) {
-            return res.status(400).send({ status: false, message: "shipping city is required" })
-        }
-
-        if (!/^[a-zA-Z]+$/.test(shipping.city)) {
-            return res.status(400).send({ status: false, message: "city field have to fill by alpha characters" });
-        }
-
-        if (!isValid(shipping.pincode)) {
-            return res.status(400).send({ status: false, message: "shipping pincode is required" })
-        }
-
-
-        //applicable only for numeric values and extend to be 6 characters only==>
-
-        if (!/^\d{6}$/.test(shipping.pincode)) {
-            return res.status(400).send({ status: false, message: "plz enter valid shipping pincode" });
-        }
-
-
-        //Billing Field validation==>
-
-        if (!billing) {
-            return res.status(400).send({ status: false, message: "billing is required" })
-        }
-
-        if (typeof billing != "object") {
-            return res.status(400).send({ status: false, message: "billing should be an object" })
-        }
-
-        if (!isValid(billing.street)) {
-            return res.status(400).send({ status: false, message: "billing street is required" })
-        }
-
-        if (!isValid(billing.city)) {
-            return res.status(400).send({ status: false, message: "billing city is required" })
-        }
-        if (!/^[a-zA-Z]+$/.test(billing.city)) {
-            return res.status(400).send({ status: false, message: "city field have to fill by alpha characters" });
-        }
-
-        if (!isValid(billing.pincode)) {
-            return res.status(400).send({ status: false, message: "billing pincode is required" })
-        }
-
-        //applicable only for numeric values and extend to be 6 characters only
-
-        if (!/^\d{6}$/.test(billing.pincode)) {
-            return res.status(400).send({ status: false, message: "plz enter valid  billing pincode" });
-        }
+       
 
 
         //saving aws link of ProfileImage
-
+      console.log(file)
         if (file && file.length > 0) {
+            console.log(file[0])
             let uploadedFileURL = await uploadFile(file[0])
+            console.log(uploadedFileURL)
             data["profileImage"] = uploadedFileURL
         }
         else {
             return res.status(400).send({ status: false, message: "No file found" })
         }
-
+       
 
         ///Creating User Data====>
 
@@ -332,8 +276,8 @@ const getUser = async function (req, res) {
             return res.status(403).send({ status: false, message: "Unauthorized user" })
         }
 
-        let data = await userModel.findOne({ _id: pathParams })
-        return res.status(200).send({ status: true, message: "User profile details", data: data })
+       
+        return res.status(200).send({ status: true, message: "User profile details", data: user })
 
 
     }
