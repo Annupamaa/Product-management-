@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const { AutoScaling } = require("aws-sdk")
 const { uploadFile } = require("./aws")
-let {isValid,isValidIncludes,validName,validPhone,validEmail,isValidRequestBody, validCity, validPincode}=require("./validator")
+let {isValid,isValidIncludes,validName,validPhone,validEmail,validPassword,isValidRequestBody, validCity, validPincode}=require("./validator")
 
 
 
@@ -228,7 +228,7 @@ const loginUser = async function (req, res) {
                 },
                 "project5", { expiresIn: "24hr" }
             );
-            res.status(200).send({ status: true, message: `welcome ${emailCheck.fname}   ${emailCheck.lname}`, data: { userId: userId, token: token } });
+            res.status(200).send({ status: true, message: `welcome ${emailCheck.fname}  ${emailCheck.lname}`, data: { userId: userId, token: token } });
         }
     } catch (err) {
         res.status(500).send({ status: false, data: err.message });
@@ -312,17 +312,13 @@ const updateUser = async function (req, res) {
         //fetching data from Request Body
         let data = req.body
         let file = req.files
+        let update={}
 
         if (file && file.length > 0) {
             let uploadedFileURL = await uploadFile(file[0])
-            data["profileImage"] = uploadedFileURL
+            update["profileImage"] = uploadedFileURL
         }
 
-
-        if (!isValidRequestBody(data) && (file == undefined || file.length == 0)) {
-            return res.status(400).send({ status: false, message: "plz enter valid data for updation" })
-
-        }
 
         //Destructuring
         let { email, phone, lname, fname, password, address } = data
@@ -330,7 +326,7 @@ const updateUser = async function (req, res) {
 
 
         //Email Validtion
-        if (isValidIncludes("email", data)) {
+        if (email) {
             if (!isValid(email)) {
                 return res.status(400).send({ status: false, message: "plzz enter email" })
             }
@@ -346,20 +342,16 @@ const updateUser = async function (req, res) {
             if (emailExt) {
                 return res.status(400).send({ status: false, message: "Email already exists" })
             }
-            data.email = email
+            update.email = email
 
         }
 
         //Phone Validation
 
-        if (isValidIncludes("phone", data)) {
-            if (!isValid(phone)) {
-                return res.status(400).send({ status: false, message: "plzz enter mobile" })
-            }
-
+        if (phone) {
 
             //this regex will to set the phone no. length to 10 numeric digits only.
-            if (!validPhone(phone)) {
+            if (!validPhone(phone)||!isValid(phone)) {
                 return res.status(400).send({ status: false, message: "Please enter valid 10 digit mobile number." })
             }
 
@@ -367,81 +359,78 @@ const updateUser = async function (req, res) {
             if (phoneExt) {
                 return res.status(400).send({ status: false, message: "phone number already exists" })
             }
-            data.phone = phone
+            update.phone = phone
 
         }
 
 
         //Fname Vaidation
-        if (isValidIncludes("fname", data)) {
+        if (fname) {
 
-            if (!isValid(fname)) {
-                return res.status(400).send({ status: false, message: "Please enter valid fname" })
+            if (!isValid(fname)||!validName(fname)) {
+                return res.status(400).send({ status: false, message: "Please enter valid fname, should contains only alphabets "})
             }
-            data.fname = fname
+            update.fname = fname
 
         }
 
         //Lname Validation
-        if (isValidIncludes("lname", data)) {
-            if (!isValid(lname)) {
-                return res.status(400).send({ status: false, message: "Please enter valid lname" })
+        if (lname) {
+            if (!isValid(lname)||!validName(lname)) {
+                return res.status(400).send({ status: false, message: "Please enter valid lname,should contains only alphabets" })
 
             }
-            data.lname = lname
+            update.lname = lname
         }
 
 
-        //password validation
-        if (isValidIncludes("password", data)) {
-            if (!isValid(password)) {
-                return res.status(400).send({ status: false, message: "plzz enter password" })
-            }
+       
 
-
+            if(password){
             //check password length between 8-15
             password = password.trim()
-            if (password.length < 8 || password.length > 15) {
-                return res.status(400).send({ status: false, message: "plzz enter valid password" })
+            
+            if (!validPassword(password)||!isValid(password)) {
+                return res.status(400).send({ status: false, message: "password should be valid and have length 8 to 15 " })
             }
-
-
             //Password Encryption
             
-            data.password = await bcrypt.hash(password, 10)
+            update.password = await bcrypt.hash(password, 10)
         }
 
 
         //address validation
          if(address){   
-                //  if (isValidIncludes("address", data)) {
-            
-        //     if (!isValid(address)) {
-        //         return res.status(400).send({ status: false, message: "plzz enter address" })
-        //     }
-         let {shipping,billing} =address
-         console.log("address",address,"shipping",shipping)
-                   
-      
-        data.address = {
-            shipping: {
-                street: data.address?.shipping?.street || user.address.shipping.street,
-                city: data.address?.shipping?.city || user.address.shipping.city,
-                pincode: data.address?.shipping?.pincode || user.address.shipping.pincode
-            },
-            billing: {
-                street: data.address?.billing?.street || user.address.billing.street,
-                city: data.address?.billing?.city || user.address.billing.city,
-                pincode: data.address?.billing?.pincode || user.address.billing.pincode
-
+   
+        for(let dest in address){
+            for(let sCP in address[dest]){
+                if(!isValid(address[dest][sCP])){
+                    console.log(dest,sCP)
+                   return res.status(400).send({status:false,message:` plz enter valid ${dest} address's ${sCP} `})
+                }
+                if(sCP=="city"){
+                    if(!validCity(address[dest].city)){
+                        return res.status(400)
+                        .send({status:false,message:` ${dest} city is not valid,city can have only character`})
+                    }
+                }
+                if(sCP=="pincode"){
+                    if(!validPincode(address[dest].pincode)){
+                        return res.status(400).send({status:false,message:` ${dest} pincode is not valid,plz enter 6 digit pincode`})
+                    }
+                }
+                console.log(dest,)
+                update[`address.${dest}.${sCP}`] =address[dest][sCP].trim()
+                console.log(update)
             }
+            
 
         }
     }
 
 
         //Upadate data and Save
-        let updatedData = await userModel.findByIdAndUpdate({ _id: pathParams }, data, { new: true })
+        let updatedData = await userModel.findByIdAndUpdate({ _id: pathParams },{ $set: {...update}} , { new: true })
         return res.status(200).send({ status: true,message: 'Success', data: updatedData })
 
 

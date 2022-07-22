@@ -24,6 +24,11 @@ const validInstallment1 = function (value) {
   if (value % 1 == 0) return true;
   }
 
+  const validPassword= function(password){
+    if (password.length < 8 || password.length > 15) return false
+    else return true
+  }
+
 const isValidIncludes=function(value,requestBody){
     return Object.keys(requestBody).includes(value)
 } 
@@ -58,7 +63,7 @@ const validName =(name)=>{
   else return true
 }
 
- module.exports={isValid,validPhone,validName ,validEmail,validPincode,isValidIncludes,validInstallment,validInstallment1,validString,isValidRequestBody,validCity} 
+ module.exports={isValid,validPassword,validPhone,validName ,validEmail,validPincode,isValidIncludes,validInstallment,validInstallment1,validString,isValidRequestBody,validCity} 
 
 
 

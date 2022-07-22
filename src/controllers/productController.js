@@ -77,17 +77,16 @@ const createProduct = async function (req, res) {
         }
         requestBody.price = Number(price).toFixed(2)
 
+
         if (!isValid(currencyId)) {
             return res.status(400).send({ status: false, message: "currencyId is required" })
         }
-
-
         if (currencyId != "INR") {
             return res.status(400).send({ status: false, message: "currencyId should be INR" })
         }
 
         if (!isValid(currencyFormat)) {
-            return res.status(400).send({ status: false, message: "currencyFormat is required" })
+            return res.status(400).send({ status: false, message: "currencyFormat is required " })
 
         }
         if (currencyFormat != "₹") {
@@ -113,8 +112,6 @@ const createProduct = async function (req, res) {
             }
 
         }
-
-
 
         if (isValidIncludes("isFreeShipping", requestBody)) {
 
@@ -162,7 +159,7 @@ const createProduct = async function (req, res) {
     catch (err) {
         return res.status(500).send({
             status: false,
-            message: "Error is : " + err
+            message: "Error" + err
         })
     }
 }
@@ -227,9 +224,7 @@ const getProducts = async function (req, res) {
                     return res.status(400).send({ status: false, message: "Please enter size" })
 
                 }
-                const sizesArray = size
-                    .trim()
-                    .split(",")
+                const sizesArray = size.trim().split(",")
                     .map((x) => x.trim().toUpperCase());
                 for (let i = 0; i < sizesArray.length; i++) {
                     if (!(["S", "XS", "M", "X", "L", "XXL", "XL"].includes(sizesArray[i]))) {
@@ -247,8 +242,6 @@ const getProducts = async function (req, res) {
                 if (!isValid(priceSort)) {
                     return res.status(400).send({ status: false, message: "Please enter priceSort" })
 
-
-
                 }
                 if (![-1, 1].includes(Number(priceSort))) {
                     return res.status(400).send({ status: false, message: "You can only enter -1 or +1 in priceSort" })
@@ -262,8 +255,6 @@ const getProducts = async function (req, res) {
             }
 
         }
-
-
         ///save Product Detail to DB
         const getProduct = await productModel.find(query)
         if (getProduct.length === 0) {
