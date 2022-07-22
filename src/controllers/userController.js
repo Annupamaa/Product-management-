@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const { AutoScaling } = require("aws-sdk")
 const { uploadFile } = require("./aws")
-let {isValid,isValidIncludes,validInstallment,validString,isValidRequestBody, validCity, validPincode}=require("./validator")
+let {isValid,isValidIncludes,validName,validPhone,validEmail,isValidRequestBody, validCity, validPincode}=require("./validator")
 
 
 
@@ -35,7 +35,7 @@ const createUser = async (req, res) => {
             return
         }
 
-        if (!/^[A-Za-z\s]{1,}[\.]{0,1}[A-Za-z\s]{0,}$/.test(fname)) {
+        if (!!validName(fname)) {
             return res.status(400).send({ status: false, message: "Please enter valid user first name." })
         }
 
@@ -48,7 +48,7 @@ const createUser = async (req, res) => {
 
 
         //this will validate the type of name including alphabets and its property with the help of regex.
-        if (!/^[A-Za-z\s]{1,}[\.]{0,1}[A-Za-z\s]{0,}$/.test(lname)) {
+        if (!validName(lname)) {
             return res.status(400).send({ status: false, message: "Please enter valid user last name." })
         }
 
@@ -61,9 +61,9 @@ const createUser = async (req, res) => {
 
         //email regex validation for validate the type of email.
         email = email.toLowerCase().trim()
-        const emailPattern = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})/
+   
 
-        if (!email.match(emailPattern)) {
+        if (!validEmail(email)) {
             return res.status(400).send({ status: false, message: "This is not a valid email" })
         }
 
@@ -84,13 +84,9 @@ const createUser = async (req, res) => {
         password = password.trim()
         if (password.length < 8 || password.length > 15) {
             return res.status(400).send({ status: false, message: "password length should between 8 to 15" })
-        }
-
-        //Ganeration of encrypted Password
-        // const salt = await bcrypt.genSalt(10)
-        const salt =10
+        }     
         
-        data.password = await bcrypt.hash(password, salt)
+        data.password = await bcrypt.hash(password, 10)
         console.log(data.password)
 
 
@@ -101,7 +97,7 @@ const createUser = async (req, res) => {
         }
 
         //this regex will to set the phone no. length to 10 numeric digits only.
-        if (!/^(\+91)?0?[6-9]\d{9}$/.test(phone.trim())) {
+        if (!validPhone(phone)) {
             return res.status(400).send({ status: false, message: "Please enter valid 10 digit mobile number." })
         }
 
@@ -134,15 +130,12 @@ const createUser = async (req, res) => {
         }
       }
         
-       
-
-
         //saving aws link of ProfileImage
       console.log(file)
         if (file && file.length > 0) {
-            console.log(file[0])
+            
             let uploadedFileURL = await uploadFile(file[0])
-            console.log(uploadedFileURL)
+            
             data["profileImage"] = uploadedFileURL
         }
         else {
@@ -190,8 +183,7 @@ const loginUser = async function (req, res) {
 
         //email regex validation for validate the type of email.
         email = email.toLowerCase().trim()
-        const emailPattern = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})/
-        if (!email.match(emailPattern)) {
+        if (!validEmail(email)) {
             return res.status(400).send({ status: false, message: "This is not a valid email" })
         }
 
@@ -200,9 +192,7 @@ const loginUser = async function (req, res) {
         if (!isValid(password)) {
             return res.status(400).send({ status: false, msg: "please provide password" });
         }
-
-
-        //// cheack password length between 8 to 15
+        
         password = password.trim()
         if (password.length < 8 || password.length > 15) {
             return res.status(400).send({ status: false, message: "plzz enter valid password" })
@@ -227,6 +217,8 @@ const loginUser = async function (req, res) {
         //Ganeration of JWT Token
 
         const userId = emailCheck._id;
+        
+        console.log(`welcome ${emailCheck.fname}   ${emailCheck.lname}`)
         const data = { email, password };
         if (data) {
             const token = jwt.sign(
@@ -236,7 +228,7 @@ const loginUser = async function (req, res) {
                 },
                 "project5", { expiresIn: "24hr" }
             );
-            res.status(200).send({ status: true, msg: "user login sucessfully", data: { userId: userId, token: token } });
+            res.status(200).send({ status: true, message: `welcome ${emailCheck.fname}   ${emailCheck.lname}`, data: { userId: userId, token: token } });
         }
     } catch (err) {
         res.status(500).send({ status: false, data: err.message });
@@ -345,10 +337,7 @@ const updateUser = async function (req, res) {
 
             //email regex validation for validate the type of email.
             email = email.toLowerCase().trim()
-            const emailPattern = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})/
-
-
-            if (!email.match(emailPattern)) {
+            if (!validEmail(email)) {
                 return res.status(400).send({ status: false, message: "This is not a valid email" })
             }
 
@@ -370,7 +359,7 @@ const updateUser = async function (req, res) {
 
 
             //this regex will to set the phone no. length to 10 numeric digits only.
-            if (!/^(\+91)?0?[6-9]\d{9}$/.test(phone.trim())) {
+            if (!validPhone(phone)) {
                 return res.status(400).send({ status: false, message: "Please enter valid 10 digit mobile number." })
             }
 
@@ -418,141 +407,22 @@ const updateUser = async function (req, res) {
 
 
             //Password Encryption
-            const salt = await bcrypt.genSalt(10)
-            data.password = await bcrypt.hash(password, salt)
             
-
+            data.password = await bcrypt.hash(password, 10)
         }
 
 
         //address validation
-        if (isValidIncludes("address", data)) {
+         if(address){   
+                //  if (isValidIncludes("address", data)) {
             
-            if (!isValid(address)) {
-                return res.status(400).send({ status: false, message: "plzz enter address" })
-            }
-
-            
-            if(data.address[0]!='{' || data.address[data.address.length-1]!='}'){
-                return res.status(400).send({status:false,message:"Address must be in object"})
-            }
-            
-            data.address = JSON.parse(data.address)
-            
-
-            
-            if (Object.keys(data.address).length == 0) {
-                return res.status(400).send({ status: false, message: "No keys are given in address" })
-
-            }
-
-            //Destructuring
-            let { shipping, billing } = data.address
-
-            
-            //Shipping Feild Validation
-            if (shipping) {
-
-                if (typeof shipping != "object") {
-                    return res.status(400).send({ status: false, message: "Shipping must be in object" })
-                }
-
-                if (Object.keys(shipping).length == 0) {
-                    return res.status(400).send({ status: false, message: "No keys are given in shipping" })
-                }
-
-
-                //Destructuring
-
-                let { street, city, pincode } = shipping
-
-                if (street) {
-                    if (!isValid(street)) {
-                        return res.status(400).send({ status: false, message: "shipping street is required" })
-                    }
-                    data.address.shipping.street = shipping.street
-                }
-
-                if (city) {
-                    if (!isValid(shipping.city)) {
-                        return res.status(400).send({ status: false, message: "shipping city is required" })
-                    }
-
-                    if (!/^[a-zA-Z]+$/.test(shipping.city)) {
-                        return res.status(400).send({ status: false, message: "city field have to fill by alpha characters" });
-                    }
-
-                    data.address.shipping.city = shipping.city
-
-                } if (pincode) {
-                    if (!isValid(pincode)) {
-                        return res.status(400).send({ status: false, message: "Shipping pincode is required" })
-                    }
-
-                    //applicable only for numeric values and extend to be 6 characters only--
-                    if (!/^\d{6}$/.test(pincode)) {
-                        return res.status(400).send({ status: false, message: "plz enter valid  shipping pincode" });
-                    }
-
-                    data.address.shipping.pincode = shipping.pincode
-
-                }
-            }
-
-
-
-            //Billing Feild Validation
-            if (billing) {
-
-                if (typeof billing != "object") {
-                    return res.status(400).send({ status: false, message: "billing must be in object" })
-                }
-                if (Object.keys(billing).length == 0) {
-                    return res.status(400).send({ status: false, message: "No keys are given in billing" })
-
-                }
-
-                //Destructuring
-                let { street, city, pincode } = billing
-                if (street) {
-                    if (!isValid(street)) {
-                        return res.status(400).send({ status: false, message: "billing street is required" })
-                    }
-                    data.address.billing.street = billing.street
-
-                }
-
-
-                if (city) {
-                    if (!isValid(billing.city)) {
-                        return res.status(400).send({ status: false, message: "billing city is required" })
-                    }
-
-                    if (!/^[a-zA-Z]+$/.test(billing.city)) {
-                        return res.status(400).send({ status: false, message: "city field have to fill by alpha characters" });
-                    }
-
-                    data.address.billing.city = billing.city
-
-                } if (pincode) {
-                    if (!isValid(pincode)) {
-                        return res.status(400).send({ status: false, message: "billing pincode is required" })
-                    }
-
-                    //applicable only for numeric values and extend to be 6 characters only--
-                    if (!/^\d{6}$/.test(billing.pincode)) {
-                        return res.status(400).send({ status: false, message: "plz enter valid  billing pincode" });
-                    }
-
-                    data.address.billing.pincode = billing.pincode
-
-                }
-            }
-
-        }
-
-
-        //taking perticular value from Address Feild And Update accordingly
+        //     if (!isValid(address)) {
+        //         return res.status(400).send({ status: false, message: "plzz enter address" })
+        //     }
+         let {shipping,billing} =address
+         console.log("address",address,"shipping",shipping)
+                   
+      
         data.address = {
             shipping: {
                 street: data.address?.shipping?.street || user.address.shipping.street,
@@ -567,6 +437,7 @@ const updateUser = async function (req, res) {
             }
 
         }
+    }
 
 
         //Upadate data and Save
